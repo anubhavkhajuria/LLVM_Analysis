@@ -2,223 +2,133 @@
 
 ## Overview
 
-This repository is a collection of **static analysis and instrumentation passes** implemented on top of the **LLVM compiler infrastructure**.
+This repository provides a modular collection of static analysis passes implemented on top of the **LLVM compiler infrastructure**.  
+Each analysis is built as a **loadable LLVM plugin**, enabling independent development, testing, and integration into the LLVM optimization pipeline.
 
-Each pass performs a different kind of program analysis or transformation on LLVM IR — including range estimation, pointer aliasing, dependence detection, and automatic bounds checking — and can be independently compiled and run as an LLVM plugin.
-
-The suite is modular and designed for extensibility: new analyses can be easily added as separate subdirectories following a consistent structure.
+The project includes a **top-level automated CMake build system** that:
+- Detects your installed LLVM
+- Builds all analysis plugins
+- Automatically generates sample C programs
+- Compiles those test programs into LLVM IR (`.ll`) for immediate use with `opt`
 
 ---
 
 ## Project Structure
 
-```
-LLVM-Analysis/
-├── ArrayInstrumentation/  # Array bounds checking with range analysis
-│   ├── arrayinstrumentation.cpp
-│   └── README.md
+LLVM_Analysis/
+├── ArrayInstrumentation/ # Runtime checks for array accesses
+│ ├── <source files>
+│ └── README.md
 │
-├── Dependence_analysis/   # Loop & memory dependence detection
-│   ├── Dependence_Analysis.cpp
-│   └── README.md
+├── Dependence_analysis/ # Loop and memory dependence analysis
+│ ├── <source files>
+│ └── README.md
 │
-├── Pointer_analysis/      # Andersen-style pointer alias analysis
-│   ├── Pointer_Analysis.cpp
-│   └── README.md
+├── Pointer_analysis/ # Andersen-style pointer alias analysis
+│ ├── <source files>
+│ └── README.md
 │
-├── Range_analysis/        # Abstract interpretation–based range analysis
-│   ├── Range_analysis.cpp
-└── └── README.md
-```
+├── Range_analysis/ # Abstract-interpretation-based integer range analysis
+│ ├── <source files>
+│ └── README.md
+│
+├── CMakeLists.txt 
+└── README.md
+yaml
+Copy code
 
-Each subdirectory contains:
-* The source code for the LLVM analysis pass.
-* A `README.md` explaining the logic, usage, and sample tests.
+Each submodule contains:
+- The LLVM pass source
+- Module-specific CMake
+- Usage documentation and examples
 
 ---
 
-## Key Analyses
-
-### Array Instrumentation
-Combines **interval-based abstract interpretation** with **automatic instrumentation** to insert runtime bounds checks for array accesses that cannot be statically proven safe.
-Useful for detecting buffer overflows, improving memory safety, and debugging array-related errors.
-
-### Dependence Analysis
-Performs **loop-carried and memory dependence analysis** to identify data dependencies between instructions or iterations using LLVM's DependenceAnalysis framework.
-Forms the basis for **automatic parallelization** and **loop transformation** passes.
-
-### Pointer Analysis
-Implements **Andersen's inclusion-based pointer alias analysis** to determine possible points-to relations between pointer variables.
-Essential for alias detection, memory safety analysis, and optimization.
+## Included Analyses
 
 ### Range Analysis
-Estimates numerical bounds for program variables using **abstract interpretation**.
-Useful for detecting overflows, redundant checks, and loop bound optimization.
+Determines numerical bounds of integer variables using abstract interpretation.  
+Enables overflow detection, bounds inference, and loop reasoning.
+
+### Pointer Analysis
+Implements Andersen’s inclusion-based points-to analysis to identify potential aliasing.  
+Enables conservative optimization and memory-safety analysis.
+
+### Dependence Analysis
+Performs loop-carried and memory dependence detection used in parallelization and scheduling.
+
+### Array Instrumentation
+Injects instrumentation into array accesses for dynamic bounds validation and error detection.
 
 ---
 
-## Building the Analyses
+## Build Requirements
 
-You can build all analyses together using CMake:
+- LLVM with CMake configuration support (`llvm-config` available)
+- CMake ≥ 3.13
+- C++17 compatible compiler
+- `clang` in PATH for test generation
+
+---
+
+## Building All Analyses
 
 ```bash
+git clone https://github.com/anubhavkhajuria/LLVM_Analysis.git
+cd LLVM_Analysis
 mkdir build && cd build
-cmake -DLT_LLVM_INSTALL_DIR=$(llvm-config --prefix) ..
-make
-```
+cmake .. -DLLVM_DIR=$(llvm-config --cmakedir)
+make -j$(nproc)
+This automatically:
 
-Or build individual analyses separately by entering their directories:
+Compiles all passes → build/lib/*.so
 
-```bash
-cd ArrayInstrumentation
-mkdir build && cd build
-cmake -DLLVM_DIR=$(llvm-config --cmakedir) ..
-make
-```
+Generates sample test programs → build/tests/*.c
 
----
+Produces compiled IR files → build/tests/*.ll
 
-## Running a Pass
+Running an Analysis
+Navigate to the test directory:
 
-1. Generate LLVM IR:
-   ```bash
-   clang -S -emit-llvm test.c -o test.ll
-   ```
+bash
+Copy code
+cd build/tests
+Run any plugin with opt.
+Example: ArrayInstrumentation
 
-2. Run an analysis pass using `opt`:
-   ```bash
-   # For analysis-only passes (no IR modification)
-   opt -load-pass-plugin ./Dependence_Analysis.so \
-       -passes="dependence-analysis" \
-       -disable-output test.ll
-   ```
+bash
+Copy code
+opt -load-pass-plugin=../lib/libArrayInstrumentation.so \
+    -passes="array-instrumentation" \
+    -disable-output \
+    test_array.ll
+Each submodule README provides the exact pass name for execution.
 
-3. Run an instrumentation pass:
-   ```bash
-   # For transformation passes that modify IR
-   opt -load-pass-plugin ./arrayinstrumentation.so \
-       -passes="instrument-array-accesses" \
-       -S test.ll -o test_instr.ll
-   ```
+Adding a New Analysis
+Create a new directory in the project root, e.g.:
 
-Each submodule's README contains detailed examples for its respective pass.
+Copy code
+MyNewAnalysis/
+Add your .cpp implementation and a local CMakeLists.txt
 
----
+Write a small README.md explaining usage
 
-## Adding a New Analysis
+Register it inside the root CMakeLists.txt:
 
-To add a new analysis:
+cmake
+Copy code
+add_subdirectory(MyNewAnalysis)
+After this, it will be built automatically with the rest of the suite.
 
-1. Create a new directory under the project root, e.g.:
-   ```
-   MyNewAnalysis/
-   ```
+References
+LLVM: Writing an LLVM Pass
+https://llvm.org/docs/WritingAnLLVMPass.html
 
-2. Implement your analysis pass as a `.cpp` file following the new PassManager API.
+Andersen, L. O.
+Program Analysis and Specialization for the C Programming Language, 1994
 
-3. Add a `README.md` describing the analysis technique, usage, and examples.
+Muchnick, S. S.
+Advanced Compiler Design and Implementation
 
-4. Create a local `CMakeLists.txt` in the subdirectory.
-
-5. Update the top-level `CMakeLists.txt` to include the new subdirectory:
-   ```cmake
-   add_subdirectory(MyNewAnalysis)
-   ```
-
----
-
-## Root `CMakeLists.txt`
-
-Below is a sample top-level `CMakeLists.txt` you can use to build all analyses at once:
-
-```cmake
-cmake_minimum_required(VERSION 3.13)
-project(LLVMAnalysisSuite LANGUAGES CXX)
-
-find_package(LLVM REQUIRED CONFIG)
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-
-list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-include(AddLLVM)
-
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
-
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Add each analysis subdirectory
-add_subdirectory(ArrayInstrumentation)
-add_subdirectory(Dependence_analysis)
-add_subdirectory(Pointer_analysis)
-add_subdirectory(Range_analysis)
-
-# Add future analyses here
-# add_subdirectory(MyNewAnalysis)
-```
-
----
-
-## Analysis Categories
-
-This suite contains two types of passes:
-
-### Pure Analysis Passes
-These passes analyze the IR without modifying it:
-- **Dependence Analysis**: Reports memory dependencies
-- **Pointer Analysis**: Computes points-to sets
-- **Range Analysis**: Estimates value ranges
-
-Usage: Typically run with `-disable-output` to see diagnostic output on stderr.
-
-### Transformation/Instrumentation Passes
-These passes modify the IR based on analysis results:
-- **Array Instrumentation**: Inserts bounds checks based on range analysis
-
-Usage: Use `-S` to output modified IR, or omit to generate optimized bitcode.
-
----
-
-## Future Roadmap
-
-* [ ] Add **interprocedural analysis** capabilities (cross-function range/pointer analysis).
-* [ ] Implement **taint analysis** for security vulnerability detection.
-* [ ] Add **control flow integrity** (CFI) instrumentation.
-* [ ] Combine multiple analyses for **automatic parallelization**.
-* [ ] Add comprehensive test suite for regression and validation.
-* [ ] Support **profile-guided optimization** to reduce instrumentation overhead.
-* [ ] Implement **symbolic execution** for path-sensitive analysis.
-
----
-
-## References
-
-* [LLVM Pass Infrastructure](https://llvm.org/docs/WritingAnLLVMPass.html)
-* [LLVM New Pass Manager](https://llvm.org/docs/NewPassManager.html)
-* Cousot, P. & Cousot, R. *Abstract Interpretation: A Unified Lattice Model for Static Analysis of Programs*, POPL 1977.
-* Andersen, L. O. *Program Analysis and Specialization for the C Programming Language*, DIKU Report, 1994.
-* Cytron, R. et al. *Efficiently Computing Static Single Assignment Form*, TOPLAS 1991.
-* Muchnick, S. S. *Advanced Compiler Design and Implementation*, Morgan Kaufmann, 1997.
-
----
-
-## Contributing
-
-Contributions are welcome! When adding a new analysis:
-
-1. Follow the existing code structure and naming conventions
-2. Use the new PassManager API (not the legacy pass infrastructure)
-3. Include comprehensive documentation in the README
-4. Add test cases demonstrating the analysis
-5. Ensure the pass builds cleanly with recent LLVM versions (14+)
-
----
-
-## Contact
-
-For questions, issues, or contributions, please open an issue on the repository or contact:
-
-**Anubhab (Anubhav Khajuria)**  
-Email: anubhavkhajuria5@gmail.com
+yaml
+Copy code
