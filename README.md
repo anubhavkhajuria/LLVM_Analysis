@@ -198,11 +198,6 @@ Contributions are welcome! Please:
 * **Muchnick, S. S.**  
   *Advanced Compiler Design and Implementation*, Morgan Kaufmann, 1997
 
----
-
-## License
-
-[Specify your license here, e.g., MIT, Apache 2.0, GPL]
 
 ---
 
