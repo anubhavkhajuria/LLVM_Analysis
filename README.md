@@ -28,9 +28,7 @@ LLVM-Analysis/
 │
 ├── Range_analysis/        # Abstract interpretation–based range analysis
 │   ├── Range_analysis.cpp
-│   └── README.md
-│
-└── CMakeLists.txt         # (Optional) root CMake to build all submodules
+└── └── README.md
 ```
 
 Each subdirectory contains:
