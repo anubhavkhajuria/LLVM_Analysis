@@ -33,8 +33,8 @@ LLVM_Analysis/
 │   ├── Range_analysis.cc
 │   └── README.md
 │
-├── CMakeLists.txt            # Top-level build configuration
-└── README.md                 # This file
+├── CMakeLists.txt            
+└── README.md                 
 ```
 
 Each submodule contains:
