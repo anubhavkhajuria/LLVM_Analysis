@@ -203,7 +203,7 @@ Contributions are welcome! Please:
 
 ## Contact
 
-**Author:** Anubhav Khajuria  
+**Author:** Anubhab (Anubhav Khajuria)  
 **Repository:** [https://github.com/anubhavkhajuria/LLVM_Analysis](https://github.com/anubhavkhajuria/LLVM_Analysis)
 
 For questions, issues, or suggestions, please open an issue on GitHub.
