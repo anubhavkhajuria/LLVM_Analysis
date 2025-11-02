@@ -15,19 +15,19 @@ The suite is modular and designed for extensibility: new analyses can be easily 
 ```
 LLVM-Analysis/
 ├── ArrayInstrumentation/  # Array bounds checking with range analysis
-│   ├── ArrayInstrumentationPass.cpp
+│   ├── arrayinstrumentation.cpp
 │   └── README.md
 │
 ├── Dependence_analysis/   # Loop & memory dependence detection
-│   ├── LoopDependenceAnalysisPass.cpp
+│   ├── Dependence_Analysis.cpp
 │   └── README.md
 │
 ├── Pointer_analysis/      # Andersen-style pointer alias analysis
-│   ├── PointerAnalysis.cpp
+│   ├── Pointer_Analysis.cpp
 │   └── README.md
 │
 ├── Range_analysis/        # Abstract interpretation–based range analysis
-│   ├── RangeAnalysis.cpp
+│   ├── Range_analysis.cpp
 │   └── README.md
 │
 └── CMakeLists.txt         # (Optional) root CMake to build all submodules
@@ -90,7 +90,7 @@ make
 2. Run an analysis pass using `opt`:
    ```bash
    # For analysis-only passes (no IR modification)
-   opt -load-pass-plugin ./libLoopDependenceAnalysisPass.so \
+   opt -load-pass-plugin ./Dependence_Analysis.so \
        -passes="dependence-analysis" \
        -disable-output test.ll
    ```
@@ -98,7 +98,7 @@ make
 3. Run an instrumentation pass:
    ```bash
    # For transformation passes that modify IR
-   opt -load-pass-plugin ./libArrayInstrumentationPass.so \
+   opt -load-pass-plugin ./arrayinstrumentation.so \
        -passes="instrument-array-accesses" \
        -S test.ll -o test_instr.ll
    ```
@@ -195,25 +195,6 @@ Usage: Use `-S` to output modified IR, or omit to generate optimized bitcode.
 
 ---
 
-## Testing
-
-Each analysis includes example test cases. To run tests:
-
-```bash
-# Example: Test array instrumentation
-cd ArrayInstrumentation
-clang -S -emit-llvm -O0 tests/test_example.c -o tests/test_example.ll
-opt -load-pass-plugin ./build/ArrayInstrumentationPass.so \
-    -passes="instrument-array-accesses" \
-    -S tests/test_example.ll -o tests/test_example_instr.ll
-
-# Verify the instrumented code
-clang tests/test_example_instr.ll -o tests/test_example
-./tests/test_example
-```
-
----
-
 ## References
 
 * [LLVM Pass Infrastructure](https://llvm.org/docs/WritingAnLLVMPass.html)
@@ -241,5 +222,5 @@ Contributions are welcome! When adding a new analysis:
 
 For questions, issues, or contributions, please open an issue on the repository or contact:
 
-**Anubhav Khajuria**  
+**Anubhab (Anubhav Khajuria)**  
 Email: anubhavkhajuria5@gmail.com
